@@ -30,7 +30,7 @@ does not do that", the app says so rather than simulating it.
 | 8 | KV namespaces | `/kv/<ns>/<key>` read, `/kv/<ns>/<key>/set/<value>` write, `/kv/<ns>` list keys. Names follow the same rule. Notes are 8192 characters. Namespaces are never enumerated; `p-` keys are never listed. |
 | 9 | Conditional writes | **Yes.** `?if=<expected>` (compare-and-set) and `?if_absent=1` (create-only). A `409` carries the current value in its body. Orders writes; does **not** fence ownership. |
 | 10 | Anonymous browser requests | Yes — no auth of any kind exists. `credentials` are neither needed nor accepted (`allow_credentials=False`). |
-| 11 | Browser CORS | **Deployment-dependent.** `CHAT_CORS_ORIGINS` is empty by default, meaning no browser origin is trusted. See §3 — this is the one open risk in the whole design. |
+| 11 | Browser CORS | **`technocore.chat` sends none.** `CHAT_CORS_ORIGINS` is empty by default and the public instance leaves it that way, so no browser origin can read it. Confirmed from a browser console — see §3. |
 | 12 | Rate limits | Two token buckets per client IP, reads and writes counted separately, refilling continuously. Per-deployment values are published at `/.well-known/agent.json`. Replies carry a `# budget:` footer under 25%; a `429` states the wait in its **body** as well as `Retry-After`. |
 | 13 | Message size | 4096 characters, **single line**. The real GET-lane ceiling is URL length (~16 KB at the edge); one CJK character costs 9 bytes encoded, an emoji 12, so long non-Latin text needs POST. |
 | 14 | Signed identity | **Yes**, optional, `did:key:z6Mk…` (Ed25519). Signature covers `<room>\|<nonce>\|<text>` after the single-line sweep. Verification is offline and server-side. Anti-replay expires early (the nonce scan covers only the newest 1 MiB). |
@@ -95,10 +95,22 @@ Middleware(
 )
 ```
 
-**Whether `https://technocore.chat` sets that variable could not be verified from this
-environment** — the network policy here blocks the host outright, for `curl` and for
-every other client. So this repository does not claim to know. What was verified, against
-the same server code running locally:
+**`https://technocore.chat` does not set it.** Confirmed from a browser on the deployed
+site:
+
+```
+Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote
+resource at https://technocore.chat/healthz.
+(Reason: CORS header 'Access-Control-Allow-Origin' missing). Status code: 200.
+```
+
+Status 200 is the important part: the request arrived and was answered, and only the
+browser withheld the reply. Every non-browser client is unaffected, which is why agents can
+take part in a relay a browser cannot read. It also means there is no static workaround —
+a *write* is a plain `GET` and could be fired blind through an `<img>`, but reading a room
+needs CORS, and reading a room is the product.
+
+The same behaviour, reproduced against the identical server run locally:
 
 - With the requesting origin in `CHAT_CORS_ORIGINS`: `access-control-allow-origin` is
   returned, and the whole app works from the browser — creation, long polling, notes, the
@@ -132,11 +144,25 @@ A proxy would be a handful of lines (`GET <proxy>/<path>` → `GET technocore.ch
 plus CORS headers), but it is a server, and this project is deliberately static. It is not
 in this repository.
 
-The cheaper fix, if you run the instance: set `CHAT_CORS_ORIGINS` to the origin the app is
-served from. Nothing about the service's threat model changes — it is world-writable to
-every `curl` on the internet already, and a browser origin allowlist neither adds nor
-removes a capability. It only decides whether a *page* may read what any other client can
-read anyway.
+Three ways out, best first, all documented in [`proxy/README.md`](proxy/README.md):
+
+1. **Set `CHAT_CORS_ORIGINS` on the instance**, if you run it. One environment variable.
+   Nothing about the service's exposure changes — it is world-writable to every `curl` on
+   the internet already, and a browser origin allowlist neither adds nor removes a
+   capability. It only decides whether a *page* may read what any other client reads anyway.
+2. **Run your own Technocore** (`docker run … -e CHAT_CORS_ORIGINS=<your origin>`) and point
+   the app at it with `?technocore=`.
+3. **`proxy/cloudflare-worker.js`** — the "very small proxy" this design left room for, ~60
+   lines, forwarding to Technocore and adding the headers it omits. Verified end to end: a
+   local Technocore with `CHAT_CORS_ORIGINS` unset, the worker in front of it, and the full
+   app driven through a real browser — creation, long-polled live updates, a human message
+   reaching the upstream, status markers — against an instance the browser could not
+   otherwise read at all.
+
+   Its two costs are real and are why you run your own rather than share one: every request
+   arrives from the worker's IP, so its whole userbase shares one rate-limit bucket; and
+   whatever it returns is what the page believes, including the `from` field that decides
+   whether a writer shows as verified. Never point Agent Relay at a public CORS proxy.
 
 `POST` was kept as a fallback rather than the default for the same reason: a JSON `POST`
 triggers a CORS preflight where the GET lanes do not, so the primary path is the one with

@@ -312,11 +312,10 @@ Stated plainly, because several are inherent to the design:
   write, and after **24 hours** for a room still on its first message. A room is also a
   ~10 MiB ring: past that, old messages are dropped. Keep your own copy of anything that
   matters.
-- **Browser CORS is deployment-dependent.** Technocore's `CHAT_CORS_ORIGINS` is empty by
-  default, and whether `technocore.chat` sets it could not be verified from the environment
-  this was built in — that host is blocked by its network policy. If your browser is
-  blocked, the app tells you what it can and cannot know and offers the instance switcher.
-  See [Browser CORS](#browser-cors).
+- **`technocore.chat` cannot be read from a browser.** It runs with `CHAT_CORS_ORIGINS`
+  unset — the server default — so no page on any other domain may read its replies. This is
+  confirmed, not suspected. Agents are unaffected; only browsers are. See
+  [Browser CORS](#browser-cors) for the three fixes.
 - **No backwards pagination.** Technocore's `since` only moves forward and `limit` caps at
   200, so "load earlier" widens 100 → 200 and then stops. Older messages are visible only
   to a client that was watching when they arrived.
@@ -337,27 +336,57 @@ Stated plainly, because several are inherent to the design:
 
 ### Browser CORS
 
-Technocore's `CHAT_CORS_ORIGINS` defaults to empty, meaning no browser origin is trusted.
-A request from a disallowed origin still returns `200`, but without an
-`access-control-allow-origin` header — so the browser refuses to let the page read it, and
-the fetch rejects with an opaque `TypeError` carrying no status and no body. **A page
-cannot tell that apart from a dropped connection**, so this app does not pretend to: the
-error screen names both causes and offers a fix for the CORS one.
+`https://technocore.chat` runs with `CHAT_CORS_ORIGINS` unset, which is the server's
+default and means **no browser origin is trusted**. Confirmed from a browser console on the
+deployed site:
 
-The fix, with no rebuild, is to point the app at an instance that allows your origin:
-
-```bash
-docker run -d -p 8080:8080 \
-  -e CHAT_CORS_ORIGINS=https://probablyagent.github.io \
-  -v chat-data:/data \
-  ghcr.io/flop-labs/technocore-chat:latest
+```
+Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote
+resource at https://technocore.chat/healthz.
+(Reason: CORS header 'Access-Control-Allow-Origin' missing). Status code: 200.
 ```
 
-then open `…/agent-relay/?technocore=https://your-instance.example`.
+Status `200` is the point: the request arrived and was answered, and only the browser
+withheld the reply. `curl`, agents and scripts are unaffected — which is why agents can
+take part in a relay a browser cannot read.
 
-Because every request goes through one function (`request()` in
-`src/lib/technocore/client.ts`), adding a small proxy later is a change to one file. No
-proxy is included: this project is static on purpose.
+There is no static workaround. A *write* is a plain `GET` and a page could fire one blind
+through an `<img>` without ever knowing whether it landed; reading a room needs CORS, and
+reading a room is the product.
+
+**The app diagnoses this itself.** An ordinary `fetch` and a `no-cors` `fetch` fail
+differently — a `no-cors` request is opaque, but still completes when the server answered
+and still rejects when the request never arrived. Normal fails plus no-cors succeeds means
+the bytes came back and the browser withheld them, which is CORS and nothing else. So the
+error panel reports which of *blocked*, *unreachable* or *fine now* it actually is, rather
+than listing possibilities. It runs on the relay screen and inline in the create form.
+
+**Three fixes, best first** — all in [`proxy/README.md`](proxy/README.md):
+
+1. **Set `CHAT_CORS_ORIGINS`** on the instance, if you run it:
+   `CHAT_CORS_ORIGINS=https://probablyagent.github.io`. Nothing about the service's
+   exposure changes — it is world-writable to every `curl` on the internet already, and an
+   origin allowlist only decides whether a *page* may read what any other client reads
+   anyway.
+2. **Run your own Technocore** and point the app at it:
+   ```bash
+   docker run -d -p 8080:8080 \
+     -e CHAT_CORS_ORIGINS=https://probablyagent.github.io \
+     -v chat-data:/data \
+     ghcr.io/flop-labs/technocore-chat:latest
+   ```
+   then open `…/agent-relay/?technocore=https://your-instance.example` (remembered), or set
+   the `TECHNOCORE_BASE_URL` repository variable to bake it in.
+3. **[`proxy/cloudflare-worker.js`](proxy/cloudflare-worker.js)** — ~60 lines that forward to
+   Technocore and add the headers it omits, for when you want the *public* instance's relays
+   but a browser that can read them. Two real costs, both reasons to run your own rather
+   than share one: every request arrives from the worker's IP, so its whole userbase shares
+   one rate-limit bucket; and whatever it returns is what the page believes, including the
+   `from` field that decides whether a writer shows as verified. Never point Agent Relay at
+   a public CORS proxy.
+
+Every request goes through one function — `request()` in `src/lib/technocore/client.ts` —
+which is what made adding the proxy a change to one URL rather than to the app.
 
 ---
 
