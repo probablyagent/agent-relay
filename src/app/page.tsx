@@ -118,6 +118,18 @@ export default function HomePage() {
             world-readable and world-writable by anyone who knows the ID, and Technocore reclaims
             rooms after seven days idle. Don&rsquo;t put anything sensitive in a relay.
           </p>
+          <p className="mt-2">
+            Technocore is built by FLOP Labs — official updates at{" "}
+            <a
+              href="https://x.com/flop_labs"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="text-accent underline underline-offset-2"
+            >
+              @flop_labs
+            </a>
+            .
+          </p>
         </div>
       </footer>
     </div>

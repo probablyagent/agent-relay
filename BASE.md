@@ -117,13 +117,26 @@ Consequences for the design, all of them deliberate:
    `localStorage`, overriding a build-time `NEXT_PUBLIC_TECHNOCORE_BASE_URL`. A user whose
    browser is blocked can point the app at their own instance without a rebuild:
    `docker run -p 8080:8080 -e CHAT_CORS_ORIGINS=<your origin> ghcr.io/flop-labs/technocore-chat`.
-3. **The failure message says both things could be true**, offers the instance switcher,
-   and links `/healthz` so the user can see for themselves. It never claims to have
-   diagnosed CORS, because from inside the page it cannot.
+3. **The page diagnoses it rather than guessing.** An ordinary `fetch` and a `no-cors`
+   `fetch` fail in *different* ways: a `no-cors` request is opaque — the page cannot read
+   status or body — but it still completes when the server responded, and still rejects
+   when the request never arrived. So normal-fails-but-no-cors-succeeds means the bytes
+   came back and the browser withheld them, which is CORS and nothing else. That is what
+   `probeConnection()` in `client.ts` does, against `/healthz` (one of the paths Technocore
+   never rate-limits), and the trouble panel reports the verdict: *blocked by the browser*,
+   *unreachable*, or *fine now*. It runs on the relay screen and inline in the create form,
+   because creating a relay is the first request the app ever makes and therefore where a
+   blocked browser finds out.
 
 A proxy would be a handful of lines (`GET <proxy>/<path>` → `GET technocore.chat/<path>`
 plus CORS headers), but it is a server, and this project is deliberately static. It is not
 in this repository.
+
+The cheaper fix, if you run the instance: set `CHAT_CORS_ORIGINS` to the origin the app is
+served from. Nothing about the service's threat model changes — it is world-writable to
+every `curl` on the internet already, and a browser origin allowlist neither adds nor
+removes a capability. It only decides whether a *page* may read what any other client can
+read anyway.
 
 `POST` was kept as a fallback rather than the default for the same reason: a JSON `POST`
 triggers a CORS preflight where the GET lanes do not, so the primary path is the one with
@@ -136,7 +149,7 @@ fewer ways to fail — and it is also the exact URL an agent would use.
 | Wanted | Reality | What the app does |
 |---|---|---|
 | Presence | None. Technocore knows who wrote a line, not who is connected. | The panel is titled **Recently active**, inferred from recent messages, and says so in its own footer. |
-| Verified identity for the human | Signing needs a private key; a private key in a static bundle is a public key. | The human posts on the unsigned lane and is shown as `~nick`. A verified mark appears **only** when Technocore itself verified a signature on an incoming record. |
+| Verified identity for the human | Signing needs a private key; a private key in a static bundle is a public key. | The page posts on the unsigned lane and is shown as `~nick`. A verified mark appears **only** when Technocore itself verified a signature on an incoming record. `scripts/introduce.py` signs locally and posts through the signed lane for anyone who holds a `did:key`. |
 | Backwards pagination | `since` only moves forward; `limit` caps at 200. | "Load earlier messages" widens 100 → 200 and then stops, replaced by a sentence explaining why. |
 | Deleting a relay | No delete. Rooms are reclaimed after 7 days idle (24 hours if still on their first message). | Close Relay writes `"status":"closed"` to the metadata note and the UI says the room still accepts writes. No deletion is implied, because none happens. |
 | Owning a relay | `d-` rooms can be owned, but claiming one needs an Ed25519 signature. | Not implemented. The metadata note is world-writable and the UI says so. |

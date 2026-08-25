@@ -9,6 +9,7 @@ import { generateRelayId } from "@/lib/relay-id";
 import { createRelay, setRoomTopic } from "@/lib/technocore/rooms";
 import { postMessage } from "@/lib/technocore/messages";
 import { TechnocoreError } from "@/lib/technocore/types";
+import { ConnectionTrouble } from "@/components/relay/ConnectionTrouble";
 import { rememberRelay } from "@/lib/local-storage";
 import { cn } from "@/lib/utils";
 import type { RelayMode, RoleId } from "@/types";
@@ -25,6 +26,12 @@ export function CreateRelay() {
   const [unlisted, setUnlisted] = React.useState(true);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  /*
+   * Creating a relay is the first request this app ever makes, so it is where a browser
+   * that cannot reach Technocore finds out. A one-line "couldn't create that" would leave
+   * the visitor with nothing to do about it; the trouble panel runs an actual diagnosis.
+   */
+  const [unreachable, setUnreachable] = React.useState<TechnocoreError | null>(null);
 
   function toggleRole(id: RoleId) {
     setRoles((current) =>
@@ -42,6 +49,7 @@ export function CreateRelay() {
 
     setBusy(true);
     setError(null);
+    setUnreachable(null);
     try {
       const id = generateRelayId(trimmed, { unlisted });
       const relay = await createRelay({
@@ -74,11 +82,13 @@ export function CreateRelay() {
       router.push(`/relay/?id=${encodeURIComponent(id)}&new=1`);
     } catch (err) {
       setBusy(false);
-      setError(
+      const failure =
         err instanceof TechnocoreError
-          ? err.message
-          : "Couldn't create that relay. Check your connection and try again.",
-      );
+          ? err
+          : new TechnocoreError("unknown", "Couldn't create that relay. Try again.");
+
+      if (["network", "cors", "timeout"].includes(failure.kind)) setUnreachable(failure);
+      else setError(failure.message);
     }
   }
 
@@ -192,6 +202,14 @@ export function CreateRelay() {
         <p role="alert" className="text-xs text-danger">
           {error}
         </p>
+      ) : null}
+
+      {unreachable ? (
+        <ConnectionTrouble
+          error={unreachable}
+          onRetry={() => setUnreachable(null)}
+          compact
+        />
       ) : null}
 
       <Button type="submit" variant="primary" disabled={busy} className="w-full sm:w-auto">

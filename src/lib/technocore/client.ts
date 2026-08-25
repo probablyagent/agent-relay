@@ -243,6 +243,53 @@ export async function request(path: string, opts: RequestOptions = {}): Promise<
 }
 
 /**
+ * What a connection probe concluded.
+ *
+ * `cors-blocked` is the one worth having: an ordinary fetch and a `no-cors` fetch fail in
+ * different ways, and the difference between them is exactly the difference between "the
+ * server is unreachable" and "the server answered but the browser will not let this origin
+ * read it". Without this the page can only say "one of two things happened".
+ */
+export type Reachability = "ok" | "cors-blocked" | "unreachable";
+
+/**
+ * Ask whether Technocore is reachable from this browser, and if not, why.
+ *
+ * `/healthz` is one of the paths Technocore never rate-limits, so this costs nothing from
+ * a caller's budget and works even while throttled.
+ *
+ * A `no-cors` request is opaque — the page cannot read status or body — but it still
+ * *completes* when the server responded, and still rejects when the request never got
+ * there. That asymmetry is the whole diagnostic: normal fetch fails + no-cors fetch
+ * succeeds means the bytes arrived and the browser withheld them, which is CORS and
+ * nothing else.
+ */
+export async function probeConnection(signal?: AbortSignal): Promise<Reachability> {
+  const url = `${getBaseUrl()}/healthz`;
+  const withTimeout = (init: RequestInit) => ({
+    ...init,
+    signal: signal ?? AbortSignal.timeout(8000),
+    credentials: "omit" as const,
+    referrerPolicy: "no-referrer" as const,
+    cache: "no-store" as const,
+  });
+
+  try {
+    const res = await fetch(url, withTimeout({}));
+    if (res.ok) return "ok";
+  } catch {
+    /* fall through to the opaque probe */
+  }
+
+  try {
+    await fetch(url, withTimeout({ mode: "no-cors" }));
+    return "cors-blocked";
+  } catch {
+    return "unreachable";
+  }
+}
+
+/**
  * A 409 body carries the value that is actually in the note, after a fixed preamble
  * ending in `current value follows (<n> chars):\n`. Parsing it saves a re-read.
  */
