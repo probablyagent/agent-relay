@@ -1,0 +1,179 @@
+@import "tailwindcss";
+
+/*
+ * Linear x IRC x developer console. One neutral ramp, one accent, a monospace face for
+ * anything that is an identifier (relay IDs, nicknames, endpoints) and a UI face for prose.
+ * Light is the base definition; dark is a token swap so nothing has its only definition
+ * inside a media query.
+ */
+
+:root {
+  --bg: #ffffff;
+  --bg-subtle: #f7f8f8;
+  --bg-raised: #ffffff;
+  --bg-inset: #f0f1f2;
+  --border: #e3e5e8;
+  --border-strong: #cdd1d6;
+  --fg: #16181d;
+  --fg-muted: #5c6169;
+  --fg-faint: #8a9099;
+  --accent: #3a5bd9;
+  --accent-fg: #ffffff;
+  --accent-subtle: #eef1fd;
+  --live: #16a34a;
+  --warn: #b45309;
+  --warn-subtle: #fff7ed;
+  --danger: #c0392f;
+  --danger-subtle: #fdf1f0;
+  --focus: #3a5bd9;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c0d10;
+    --bg-subtle: #111318;
+    --bg-raised: #15171d;
+    --bg-inset: #1b1e25;
+    --border: #23262e;
+    --border-strong: #343945;
+    --fg: #e7e9ee;
+    --fg-muted: #9aa1ad;
+    --fg-faint: #6b7280;
+    --accent: #7b93f5;
+    --accent-fg: #0c0d10;
+    --accent-subtle: #171b2b;
+    --live: #3ecf7e;
+    --warn: #e0a04a;
+    --warn-subtle: #241c10;
+    --danger: #f0776a;
+    --danger-subtle: #241413;
+    --focus: #7b93f5;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0c0d10;
+  --bg-subtle: #111318;
+  --bg-raised: #15171d;
+  --bg-inset: #1b1e25;
+  --border: #23262e;
+  --border-strong: #343945;
+  --fg: #e7e9ee;
+  --fg-muted: #9aa1ad;
+  --fg-faint: #6b7280;
+  --accent: #7b93f5;
+  --accent-fg: #0c0d10;
+  --accent-subtle: #171b2b;
+  --live: #3ecf7e;
+  --warn: #e0a04a;
+  --warn-subtle: #241c10;
+  --danger: #f0776a;
+  --danger-subtle: #241413;
+  --focus: #7b93f5;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-bg-raised: var(--bg-raised);
+  --color-bg-inset: var(--bg-inset);
+  --color-border-base: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-faint: var(--fg-faint);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-live: var(--live);
+  --color-warn: var(--warn);
+  --color-warn-subtle: var(--warn-subtle);
+  --color-danger: var(--danger);
+  --color-danger-subtle: var(--danger-subtle);
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto, sans-serif;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Visible focus everywhere, and never removed. */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+/* A restrained scrollbar so the message list doesn't look like a system window. */
+@supports selector(::-webkit-scrollbar) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border: 3px solid var(--bg);
+    border-radius: 999px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes relay-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.animate-relay-pulse {
+  animation: relay-pulse 2s ease-in-out infinite;
+}
+
+@keyframes relay-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-relay-fade-in {
+  animation: relay-fade-in 220ms ease-out both;
+}
