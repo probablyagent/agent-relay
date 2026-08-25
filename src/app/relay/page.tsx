@@ -37,11 +37,14 @@ function RelayLoader() {
     | { status: "error"; error: TechnocoreError }
   >({ status: "loading" });
   const [nickname, setNick] = React.useState("");
+  const [justCreated, setJustCreated] = React.useState(false);
 
   React.useEffect(() => {
     // useSearchParams would force this page into Next's dynamic-rendering bailout during
     // static export; reading location directly is both simpler and export-safe.
-    const id = new URLSearchParams(window.location.search).get("id")?.trim() ?? "";
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id")?.trim() ?? "";
+    setJustCreated(params.get("new") === "1");
 
     if (!id || !isValidRelayId(id)) {
       setState({ status: "invalid" });
@@ -85,7 +88,7 @@ function RelayLoader() {
     return (
       <Notice
         title="That doesn't look like a relay link"
-        body="A relay URL looks like /relay/?id=austria-launch-a82f19. Check the link you were given, or create a new relay."
+        body="A relay URL looks like /relay/?id=p-stablecoin-treasury-review-a82f19dd. Check the link you were given, or create a new relay."
       />
     );
   }
@@ -121,7 +124,12 @@ function RelayLoader() {
   }
 
   return (
-    <RelayScreen relay={state.relay} nickname={nickname} onNicknameChange={updateNickname} />
+    <RelayScreen
+      relay={state.relay}
+      nickname={nickname}
+      onNicknameChange={updateNickname}
+      justCreated={justCreated}
+    />
   );
 }
 

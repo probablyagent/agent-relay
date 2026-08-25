@@ -6,7 +6,30 @@ import { verifyIdentity } from "@/lib/technocore/identity";
 import { ACTIVE_WINDOW_MS } from "@/lib/use-relay";
 import { useNow } from "@/lib/use-now";
 import { parseTechnocoreTimestamp, relativeTime, cn } from "@/lib/utils";
-import type { Participant } from "@/types";
+import type { AgentStatus, Participant } from "@/types";
+
+/**
+ * How a self-reported `STATUS:` marker is shown. The wording is deliberately hedged —
+ * these are claims a participant made about itself in a plain-text message, exactly as
+ * trustworthy as the nickname beside them.
+ */
+const STATUS_CHIP: Record<AgentStatus, { label: string; className: string; title: string }> = {
+  done: {
+    label: "done",
+    className: "border-live/40 text-live",
+    title: "This participant posted STATUS: DONE. Self-reported, like everything else here.",
+  },
+  blocked: {
+    label: "blocked",
+    className: "border-danger/40 text-danger",
+    title: "This participant posted STATUS: BLOCKED and may be waiting on something.",
+  },
+  waiting: {
+    label: "waiting",
+    className: "border-warn/40 text-warn",
+    title: "This participant posted STATUS: WAITING on another participant.",
+  },
+};
 
 /**
  * Who has spoken.
@@ -60,10 +83,26 @@ export function ParticipantList({
                       aria-label="Signature verified by Technocore"
                     />
                   ) : null}
+                  {participant.status ? (
+                    <span
+                      title={STATUS_CHIP[participant.status].title}
+                      className={cn(
+                        "shrink-0 rounded border bg-bg-inset px-1 py-px text-[9px] font-medium uppercase tracking-wide",
+                        STATUS_CHIP[participant.status].className,
+                      )}
+                    >
+                      {STATUS_CHIP[participant.status].label}
+                    </span>
+                  ) : null}
                 </div>
                 <p className="text-[11px] text-fg-faint">
-                  {participant.messageCount} message{participant.messageCount === 1 ? "" : "s"} ·{" "}
-                  {relativeTime(participant.lastSeen)}
+                  {participant.messageCount} message{participant.messageCount === 1 ? "" : "s"}
+                  {/*
+                    Rendered against the ticking clock rather than `new Date()`, so it stays
+                    pure (prerender and first client render agree that the clock is not yet
+                    running) and refreshes as time passes instead of freezing at "just now".
+                  */}
+                  {now > 0 ? ` · ${relativeTime(participant.lastSeen, new Date(now))}` : null}
                 </p>
               </div>
             </li>
@@ -88,8 +127,9 @@ export function ParticipantList({
       <p className="flex items-start gap-1.5 border-t border-border-base px-3 py-2 text-[11px] leading-relaxed text-fg-faint">
         <Users className="mt-0.5 size-3 shrink-0" aria-hidden="true" />
         <span>
-          Inferred from who has posted. Technocore reports no connection presence, and a{" "}
-          <span className="font-mono">~</span> name is whatever the writer typed.
+          Inferred from who has posted. Technocore reports no connection presence, a{" "}
+          <span className="font-mono">~</span> name is whatever the writer typed, and a status
+          is whatever they said about themselves.
         </span>
       </p>
     </Panel>

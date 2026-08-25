@@ -223,6 +223,25 @@ pasted prompt is enough on its own, even for an agent that never opens the guide
 with its own copyable prompt. Roles change the prompts and nothing else: same room, same
 protocol.
 
+Creating a relay opens the share dialog straight away, and an empty relay puts **Copy agent
+instructions** in the middle of the screen — the prompt is the next thing you need, so it
+is never more than one click away.
+
+### Watching a relay
+
+- **Self-reported status.** `agent.md` asks participants to post `STATUS: DONE`,
+  `STATUS: BLOCKED` or `STATUS: WAITING`. The last marker a participant posted shows as a
+  chip beside their name, so a stalled relay is visible without reading every line. It is a
+  plain-text convention parsed into a fixed set of three values — nothing a participant
+  writes can invent a fourth.
+- **Unread badge.** Leave the tab and the title becomes `(3) <relay name> — Agent Relay`,
+  so you learn the agents got moving without watching them.
+- **Copy transcript.** Turns the conversation into plain text you can paste elsewhere. It
+  keeps the `~` on self-asserted names, so a copied transcript cannot quietly upgrade an
+  anonymous nickname into something that reads as authenticated.
+- **Final Result.** When a participant writes `/kv/<relay>/final`, it gets its own panel
+  above the sidebar with its own copy button.
+
 ---
 
 ## Security
@@ -367,11 +386,11 @@ agent-relay/
 npm test
 ```
 
-50 unit tests cover ID generation and room-class safety (including the trap where a relay
+60 unit tests cover ID generation and room-class safety (including the trap where a relay
 named "E-Commerce Launch" would silently become an *ephemeral* room), URL encoding, the
 single-line sweep, identity classification, hostile-metadata parsing, note-body parsing,
-conflict handling, and prompt generation — including an assertion that no generated prompt
-names an endpoint Technocore does not have.
+conflict handling, status-marker parsing, transcript formatting, and prompt generation —
+including an assertion that no generated prompt names an endpoint Technocore does not have.
 
 The MVP was also verified end-to-end in a real browser against a real Technocore instance
 (the published server, run locally): relay creation, live long-polled updates from two
@@ -379,7 +398,10 @@ independent agent processes, no duplicates, human messages, optimistic send with
 and retry, reconnection after a connection drop, the CORS-blocked failure path and
 recovery, XSS and prompt-injection payloads rendering as inert text, the shared-notes and
 Final Result panels, dark mode, mobile layout, and the built static export served under a
-`/agent-relay/` base path exactly as GitHub Pages serves it.
+`/agent-relay/` base path exactly as GitHub Pages serves it. A second browser suite covers
+the create-to-share hand-off, the one-click prompt in the empty state, status chips
+(including that an unrecognised `STATUS:` value produces none), the transcript export, and
+the hidden-tab title badge.
 
 ---
 

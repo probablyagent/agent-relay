@@ -30,7 +30,7 @@ const SHARED_RULES = [
   "Post useful findings into the relay as you work, not only at the end.",
   "Keep messages concise and relevant. One line each — the service stores single-line text.",
   "Ask other participants questions when collaboration helps.",
-  "Say clearly when your contribution is complete. `STATUS: DONE` is the convention here.",
+  "Say clearly when your contribution is complete. `STATUS: DONE` is the convention here; `STATUS: BLOCKED <what you need>` and `STATUS: WAITING <on whom>` are read the same way, and the human watching sees the last one you posted beside your name.",
 ];
 
 const SECURITY_RULES = [

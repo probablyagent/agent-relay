@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { ArrowDown, ChevronUp, Loader2, Radio } from "lucide-react";
+import { ArrowDown, ChevronUp, Copy, Loader2, Radio } from "lucide-react";
 import { RelayMessage } from "./RelayMessage";
-import { Button } from "@/components/ui";
+import { Button, CopyButton } from "@/components/ui";
 import type { RelayMessage as RelayMessageModel } from "@/types";
 
 /** How close to the bottom still counts as "following the conversation". */
@@ -19,6 +19,8 @@ export function RelayMessages({
   canLoadEarlier,
   loadingEarlier,
   historyTruncated,
+  agentPrompt,
+  onShare,
 }: {
   messages: RelayMessageModel[];
   nickname: string;
@@ -29,6 +31,9 @@ export function RelayMessages({
   canLoadEarlier: boolean;
   loadingEarlier: boolean;
   historyTruncated: boolean;
+  /** The generated agent prompt, so the empty state can hand it over in one click. */
+  agentPrompt?: string;
+  onShare?: () => void;
 }) {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
@@ -99,7 +104,7 @@ export function RelayMessages({
             Loading the relay…
           </div>
         ) : messages.length === 0 ? (
-          <EmptyRelay />
+          <EmptyRelay agentPrompt={agentPrompt} onShare={onShare} />
         ) : (
           <div className="divide-y divide-border-base/60">
             {messages.map((message) => (
@@ -132,16 +137,36 @@ export function RelayMessages({
   );
 }
 
-function EmptyRelay() {
+/**
+ * The empty relay is the moment the whole product turns on: the human has a room and needs
+ * the prompt. So the prompt is right here, one click away, rather than behind a dialog.
+ */
+function EmptyRelay({ agentPrompt, onShare }: { agentPrompt?: string; onShare?: () => void }) {
   return (
     <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
       <Radio className="size-6 text-fg-faint" aria-hidden="true" />
       <p className="text-sm font-medium text-fg">Nobody has said anything yet.</p>
       <p className="max-w-sm text-xs leading-relaxed text-fg-muted">
-        Use <span className="font-medium text-fg">Share Relay</span> to copy the agent
-        instructions, paste them into two or more AI agents, and their messages will appear here
-        as they arrive.
+        Copy the instructions below and paste them into two or more AI agents — Claude, ChatGPT,
+        Codex, a shell script. They join on their own and their messages appear here as they
+        arrive.
       </p>
+      {agentPrompt ? (
+        <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+          <CopyButton
+            value={agentPrompt}
+            label="Copy agent instructions"
+            copiedLabel="Copied — now paste it into an agent"
+            variant="primary"
+            icon={<Copy className="size-3.5" aria-hidden="true" />}
+          />
+          {onShare ? (
+            <Button variant="secondary" onClick={onShare}>
+              More sharing options
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { EyeOff, Lock, Radio, Target } from "lucide-react";
 import { Button } from "@/components/ui";
-import { ShareRelayButton } from "./ShareRelay";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { isUnlisted } from "@/lib/relay-id";
 import type { Relay } from "@/types";
@@ -12,11 +11,14 @@ import type { Relay } from "@/types";
 export function RelayHeader({
   relay,
   onClose,
+  onShare,
   closing,
   readOnly,
 }: {
   relay: Relay;
   onClose?: () => void;
+  /** Opens the share dialog, which the relay screen owns. */
+  onShare?: () => void;
   closing?: boolean;
   /** The demo relay renders the header without live controls. */
   readOnly?: boolean;
@@ -56,7 +58,9 @@ export function RelayHeader({
                   {closing ? "Closing…" : "Close Relay"}
                 </Button>
               ) : null}
-              <ShareRelayButton relay={relay} />
+              <Button variant="primary" size="sm" onClick={onShare}>
+                Share Relay
+              </Button>
             </>
           ) : null}
         </div>

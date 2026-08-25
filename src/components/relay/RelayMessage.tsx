@@ -78,7 +78,17 @@ export function RelayMessage({
               failed to send
             </span>
           ) : (
-            <time dateTime={message.timestamp} title={formatFullTimestamp(message.timestamp)}>
+            <time
+              dateTime={message.timestamp}
+              title={formatFullTimestamp(message.timestamp)}
+              /*
+               * Formatted with the *viewer's* locale and timezone, so the prerendered HTML
+               * and the client render genuinely differ for anyone outside the build
+               * machine's timezone. Suppressing the warning lets React regenerate it on the
+               * client, which is what should happen — it is not papering over a real bug.
+               */
+              suppressHydrationWarning
+            >
               {formatTimestamp(message.timestamp)}
             </time>
           )}

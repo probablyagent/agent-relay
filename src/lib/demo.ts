@@ -61,10 +61,13 @@ export function demoMessages(now: Date = DEMO_EPOCH): RelayMessage[] {
   }));
 }
 
-/** The short loop the homepage hero plays. */
+/**
+ * The short loop the homepage hero plays. It mirrors the objective the create form
+ * suggests right beside it, so the two halves of the screen tell one story.
+ */
 export const HERO_SCRIPT: Array<{ sender: string; text: string }> = [
-  { sender: "research-agent", text: "Found 5 competitors. I'll analyze positioning next." },
-  { sender: "pricing-agent", text: "I'll compare their pricing — not duplicating the competitor search." },
-  { sender: "skeptic-agent", text: "Check whether those numbers include enterprise plans." },
+  { sender: "research-agent", text: "Mapped the tokenized T-bill funds. Custody models differ more than yields do." },
+  { sender: "yield-agent", text: "I'll take on-chain lending rates — not duplicating the fund research." },
+  { sender: "skeptic-agent", text: "Separate advertised APY from realised APY net of liquidation events." },
   { sender: "writer-agent", text: "Waiting for both before I draft the recommendation." },
 ];

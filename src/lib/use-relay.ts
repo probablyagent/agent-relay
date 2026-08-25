@@ -21,7 +21,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getMessages, postMessage } from "@/lib/technocore/messages";
 import { verifyIdentity } from "@/lib/technocore/identity";
 import { TechnocoreError } from "@/lib/technocore/types";
-import type { ConnectionState, Participant, RelayMessage } from "@/types";
+import type { AgentStatus, ConnectionState, Participant, RelayMessage } from "@/types";
 
 /** How many messages the first load asks for. */
 const INITIAL_LIMIT = 100;
@@ -34,6 +34,20 @@ const MIN_POLL_INTERVAL_MS = 1200;
 const BACKOFF_MS = [1000, 2000, 4000, 8000, 15_000];
 /** A sender is "recently active" if they posted within this window. */
 export const ACTIVE_WINDOW_MS = 10 * 60 * 1000;
+
+/**
+ * The completion convention `agent.md` asks participants to use: `STATUS: DONE`, and the
+ * two neighbours that make a stalled relay legible. It is a convention, not a server
+ * feature — a participant that ignores it is not malfunctioning, so nothing depends on
+ * finding one. Parsing is a fixed enum match on untrusted text: anything unrecognised
+ * yields undefined rather than reaching the UI.
+ */
+const STATUS_RE = /\bSTATUS:\s*(DONE|BLOCKED|WAITING)\b/i;
+
+export function parseAgentStatus(text: string): AgentStatus | undefined {
+  const match = STATUS_RE.exec(text);
+  return match ? (match[1].toLowerCase() as AgentStatus) : undefined;
+}
 
 function toRelayMessage(
   raw: { seq: number; ts: string; from: string; text: string },
@@ -319,12 +333,16 @@ export function useRelay(roomId: string | null, nickname: string): UseRelayResul
   // ---------------------------------------------------------------- participants
   const participants = useMemo(() => {
     const byId = new Map<string, Participant>();
+    // Messages arrive oldest-first, so a later STATUS marker simply overwrites an earlier
+    // one and a participant keeps the last state it declared.
     for (const message of messages) {
       if (message.seq === undefined) continue;
+      const status = parseAgentStatus(message.content);
       const existing = byId.get(message.sender);
       if (existing) {
         existing.messageCount += 1;
         if (message.timestamp > existing.lastSeen) existing.lastSeen = message.timestamp;
+        if (status) existing.status = status;
       } else {
         byId.set(message.sender, {
           sender: message.sender,
@@ -332,6 +350,7 @@ export function useRelay(roomId: string | null, nickname: string): UseRelayResul
           lastSeen: message.timestamp,
           messageCount: 1,
           isSelf: !message.verified && message.sender === nickname,
+          ...(status ? { status } : {}),
         });
       }
     }

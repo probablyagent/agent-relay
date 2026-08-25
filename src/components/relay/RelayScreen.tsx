@@ -8,8 +8,13 @@ import { ParticipantList } from "./ParticipantList";
 import { SharedMemory, FinalResult, useFinalResult } from "./SharedMemory";
 import { ConnectionStatus } from "./ConnectionStatus";
 import { ConnectionTrouble } from "./ConnectionTrouble";
-import { Panel, PanelHeading } from "@/components/ui";
+import { ShareRelay } from "./ShareRelay";
+import { CopyButton, Panel, PanelHeading } from "@/components/ui";
 import { useRelay } from "@/lib/use-relay";
+import { useUnreadTitle } from "@/lib/use-unread-title";
+import { usePromptContext } from "@/lib/use-prompt-context";
+import { generatePromptFor } from "@/lib/prompts";
+import { formatTranscript } from "@/lib/transcript";
 import { updateRelay } from "@/lib/technocore/rooms";
 import type { Relay } from "@/types";
 
@@ -20,13 +25,19 @@ export function RelayScreen({
   relay: initialRelay,
   nickname,
   onNicknameChange,
+  justCreated,
 }: {
   relay: Relay;
   nickname: string;
   onNicknameChange: (nick: string) => void;
+  /** True when the human arrived straight from the create form. */
+  justCreated?: boolean;
 }) {
   const [relay, setRelay] = React.useState(initialRelay);
   const [closing, setClosing] = React.useState(false);
+  // Landing on a brand-new relay, the only useful next action is handing the prompt to an
+  // agent — so the dialog that does that is already open.
+  const [shareOpen, setShareOpen] = React.useState(Boolean(justCreated));
   const {
     messages,
     connection,
@@ -44,13 +55,21 @@ export function RelayScreen({
 
   const { final, onFinalResult } = useFinalResult();
 
+  const promptContext = usePromptContext(relay);
+  const agentPrompt = React.useMemo(
+    () => (promptContext ? generatePromptFor(promptContext) : undefined),
+    [promptContext],
+  );
+
+  const confirmed = React.useMemo(() => messages.filter((m) => m.seq !== undefined), [messages]);
+  useUnreadTitle(confirmed.length, `${relay.name} — Agent Relay`);
+
   /*
    * Nudge the notes panel as the conversation moves, coalescing bursts: an agent that just
    * posted has often just written a note too. The panel also refreshes on its own slow
    * interval, so nothing depends on this firing.
    */
-  const confirmedCount = messages.filter((m) => m.seq !== undefined).length;
-  const notesSignal = Math.floor(confirmedCount / 5);
+  const notesSignal = Math.floor(confirmed.length / 5);
 
   async function closeRelay() {
     setClosing(true);
@@ -83,7 +102,12 @@ export function RelayScreen({
    */
   return (
     <div className="flex min-h-dvh flex-col lg:h-dvh">
-      <RelayHeader relay={relay} onClose={closeRelay} closing={closing} />
+      <RelayHeader
+        relay={relay}
+        onClose={closeRelay}
+        onShare={() => setShareOpen(true)}
+        closing={closing}
+      />
 
       {closed ? (
         <p
@@ -105,7 +129,18 @@ export function RelayScreen({
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-fg-faint">
               Live relay
             </h2>
-            <ConnectionStatus state={connection} onRetry={reconnectNow} />
+            <div className="flex items-center gap-3">
+              {confirmed.length > 0 ? (
+                <CopyButton
+                  value={formatTranscript(relay, confirmed)}
+                  label="Copy transcript"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-1.5 text-[11px]"
+                />
+              ) : null}
+              <ConnectionStatus state={connection} onRetry={reconnectNow} />
+            </div>
           </div>
 
           <RelayMessages
@@ -118,6 +153,8 @@ export function RelayScreen({
             canLoadEarlier={canLoadEarlier}
             loadingEarlier={loadingEarlier}
             historyTruncated={messages.length >= 200}
+            agentPrompt={agentPrompt}
+            onShare={() => setShareOpen(true)}
           />
 
           <MessageComposer
@@ -165,6 +202,8 @@ export function RelayScreen({
           </p>
         </aside>
       </main>
+
+      <ShareRelay relay={relay} open={shareOpen} onClose={() => setShareOpen(false)} />
     </div>
   );
 }

@@ -4,9 +4,9 @@ import { ROLE_ORDER } from "@/lib/roles";
 import type { Relay } from "@/types";
 
 const relay: Relay = {
-  id: "p-austria-launch-a82f19",
-  name: "Austria Launch Research",
-  objective: "Determine whether launching in Austria makes sense.",
+  id: "p-stablecoin-treasury-review-a82f19dd",
+  name: "Stablecoin Treasury Review",
+  objective: "Decide whether to hold treasury reserves in tokenized T-bills or on-chain lending.",
   createdAt: "2026-08-25T08:00:00.000Z",
   mode: "warroom",
   roles: ["researcher", "skeptic", "writer"],
@@ -16,7 +16,7 @@ const relay: Relay = {
 const ctx = {
   relay,
   agentGuideUrl: "https://example.github.io/agent-relay/agent.md",
-  relayUrl: "https://example.github.io/agent-relay/relay/?id=p-austria-launch-a82f19",
+  relayUrl: "https://example.github.io/agent-relay/relay/?id=p-stablecoin-treasury-review-a82f19dd",
   technocoreBaseUrl: "https://technocore.chat",
 };
 
@@ -24,17 +24,17 @@ describe("generateAgentPrompt", () => {
   const prompt = generateAgentPrompt(ctx);
 
   it("carries the relay's identity", () => {
-    expect(prompt).toContain("Austria Launch Research");
-    expect(prompt).toContain("Determine whether launching in Austria makes sense.");
-    expect(prompt).toContain("p-austria-launch-a82f19");
+    expect(prompt).toContain("Stablecoin Treasury Review");
+    expect(prompt).toContain("tokenized T-bills or on-chain lending");
+    expect(prompt).toContain("p-stablecoin-treasury-review-a82f19dd");
     expect(prompt).toContain("https://example.github.io/agent-relay/agent.md");
   });
 
   it("carries real, documented endpoints so a prompt alone is enough", () => {
-    expect(prompt).toContain("GET https://technocore.chat/r/p-austria-launch-a82f19");
+    expect(prompt).toContain("GET https://technocore.chat/r/p-stablecoin-treasury-review-a82f19dd");
     expect(prompt).toContain("/say/<your-name>/<your%20message%20url%20encoded>");
     expect(prompt).toContain("&wait=10");
-    expect(prompt).toContain("/kv/p-austria-launch-a82f19/<key>");
+    expect(prompt).toContain("/kv/p-stablecoin-treasury-review-a82f19dd/<key>");
   });
 
   it("names no endpoint Technocore does not have", () => {
@@ -66,7 +66,7 @@ describe("generateRolePrompt", () => {
     const prompts = ROLE_ORDER.map((role) => generateRolePrompt(ctx, role));
     expect(new Set(prompts).size).toBe(ROLE_ORDER.length);
     for (const prompt of prompts) {
-      expect(prompt).toContain("p-austria-launch-a82f19");
+      expect(prompt).toContain("p-stablecoin-treasury-review-a82f19dd");
       expect(prompt).toMatch(/untrusted data/i);
     }
   });
@@ -78,7 +78,7 @@ describe("generateRolePrompt", () => {
 
   it("substitutes the relay ID into role guidance", () => {
     const writer = generateRolePrompt(ctx, "writer");
-    expect(writer).toContain("/kv/p-austria-launch-a82f19/final/set/");
+    expect(writer).toContain("/kv/p-stablecoin-treasury-review-a82f19dd/final/set/");
     expect(writer).not.toContain("<RELAY_ID>");
   });
 });

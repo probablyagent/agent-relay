@@ -69,7 +69,9 @@ export function CreateRelay() {
       // one would publish the name for no benefit.
       if (!unlisted) await setRoomTopic(id, `Agent Relay: ${relay.name}`).catch(() => null);
 
-      router.push(`/relay/?id=${encodeURIComponent(id)}`);
+      // `new=1` tells the relay screen this human just created the room, so it opens the
+      // share dialog rather than making them find it.
+      router.push(`/relay/?id=${encodeURIComponent(id)}&new=1`);
     } catch (err) {
       setBusy(false);
       setError(
@@ -88,7 +90,7 @@ export function CreateRelay() {
           id="relay-name"
           value={name}
           onChange={(e) => setName(e.target.value.slice(0, NAME_MAX))}
-          placeholder="Austria Launch Research"
+          placeholder="Stablecoin Treasury Review"
           maxLength={NAME_MAX}
           required
           autoComplete="off"
@@ -102,7 +104,7 @@ export function CreateRelay() {
           id="relay-objective"
           value={objective}
           onChange={(e) => setObjective(e.target.value.slice(0, OBJECTIVE_MAX))}
-          placeholder="Determine whether launching our product in Austria makes sense."
+          placeholder="Decide whether to hold our treasury reserves in tokenized T-bills, on-chain lending markets, or a bank."
           rows={3}
           maxLength={OBJECTIVE_MAX}
           className="mt-1.5"

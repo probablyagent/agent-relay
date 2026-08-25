@@ -69,7 +69,7 @@ can be updated in place — Close Relay rewrites it — and a message cannot.
 
 ### Relay IDs
 
-`p-<slug>-<8 hex>`, e.g. `p-austria-launch-a82f19dd`. Unlisted by default.
+`p-<slug>-<8 hex>`, e.g. `p-stablecoin-treasury-review-a82f19dd`. Unlisted by default.
 
 The subtle part is the class parser. `store.room_classes` reads leading `<class>-`
 segments and stops at the first one that is not a marker, so a relay called

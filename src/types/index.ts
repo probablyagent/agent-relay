@@ -44,4 +44,12 @@ export interface Participant {
   lastSeen: string;
   messageCount: number;
   isSelf: boolean;
+  /**
+   * The last `STATUS:` marker this participant posted, if any. A plain-text convention
+   * that `agent.md` asks agents to follow — not a server feature, and not a fact about
+   * them. A participant that never posts one is simply `undefined`.
+   */
+  status?: AgentStatus;
 }
+
+export type AgentStatus = "done" | "blocked" | "waiting";

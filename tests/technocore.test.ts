@@ -145,8 +145,8 @@ describe("parseConflictValue", () => {
 describe("parseRelayMeta", () => {
   const good = JSON.stringify({
     v: 1,
-    name: "Austria Launch Research",
-    objective: "Should we launch in Austria?",
+    name: "Stablecoin Treasury Review",
+    objective: "Where should treasury reserves sit?",
     createdAt: "2026-08-25T08:00:00.000Z",
     mode: "warroom",
     roles: ["researcher", "skeptic"],
@@ -154,10 +154,10 @@ describe("parseRelayMeta", () => {
   });
 
   it("reads a well-formed note", () => {
-    const relay = parseRelayMeta("p-austria-a1", good);
+    const relay = parseRelayMeta("p-treasury-a1", good);
     expect(relay).toMatchObject({
-      id: "p-austria-a1",
-      name: "Austria Launch Research",
+      id: "p-treasury-a1",
+      name: "Stablecoin Treasury Review",
       mode: "warroom",
       status: "active",
       roles: ["researcher", "skeptic"],

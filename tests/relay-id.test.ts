@@ -13,7 +13,7 @@ const TECHNOCORE_NAME_RE = /^[a-z0-9][a-z0-9_-]{0,47}$/;
 
 describe("slugify", () => {
   it("lowercases and hyphenates", () => {
-    expect(slugify("Austria Launch Research")).toBe("austria-launch-research");
+    expect(slugify("Stablecoin Treasury Review")).toBe("stablecoin-treasury-review");
   });
 
   it("strips accents and punctuation", () => {
@@ -52,13 +52,13 @@ describe("guardSlug", () => {
   });
 
   it("leaves an ordinary slug alone", () => {
-    expect(guardSlug("austria-launch")).toBe("austria-launch");
+    expect(guardSlug("stablecoin-treasury")).toBe("stablecoin-treasury");
   });
 });
 
 describe("generateRelayId", () => {
   it("produces a valid Technocore room name", () => {
-    for (const name of ["Austria Launch Research", "x", "!!!", "Ω≈ç√"]) {
+    for (const name of ["Stablecoin Treasury Review", "x", "!!!", "Ω≈ç√"]) {
       const id = generateRelayId(name);
       expect(id).toMatch(TECHNOCORE_NAME_RE);
     }
@@ -71,20 +71,20 @@ describe("generateRelayId", () => {
   });
 
   it("includes a random component", () => {
-    const a = generateRelayId("Austria Launch Research");
-    const b = generateRelayId("Austria Launch Research");
+    const a = generateRelayId("Stablecoin Treasury Review");
+    const b = generateRelayId("Stablecoin Treasury Review");
     expect(a).not.toBe(b);
     expect(a).toMatch(/-[0-9a-f]{8}$/);
   });
 
   it("marks unlisted relays with the p- class by default", () => {
-    const id = generateRelayId("Austria Launch Research");
+    const id = generateRelayId("Stablecoin Treasury Review");
     expect(id.startsWith("p-")).toBe(true);
     expect(isUnlisted(id)).toBe(true);
   });
 
   it("can create a listed relay", () => {
-    const id = generateRelayId("Austria Launch Research", { unlisted: false });
+    const id = generateRelayId("Stablecoin Treasury Review", { unlisted: false });
     expect(isUnlisted(id)).toBe(false);
     expect(roomClasses(id).size).toBe(0);
   });
@@ -102,7 +102,7 @@ describe("generateRelayId", () => {
 
   it("round-trips through the ID validator", () => {
     expect(isValidRelayId(generateRelayId("Anything at all"))).toBe(true);
-    expect(isValidRelayId("Austria-Launch")).toBe(false); // uppercase
+    expect(isValidRelayId("Stablecoin-Treasury")).toBe(false); // uppercase
     expect(isValidRelayId("-leading-hyphen")).toBe(false);
     expect(isValidRelayId("a".repeat(49))).toBe(false);
     expect(isValidRelayId("")).toBe(false);

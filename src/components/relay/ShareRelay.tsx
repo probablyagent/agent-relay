@@ -2,11 +2,10 @@
 
 import * as React from "react";
 import { Copy, ShieldAlert } from "lucide-react";
-import { Button, CopyButton, Dialog, Panel } from "@/components/ui";
+import { CopyButton, Dialog, Panel } from "@/components/ui";
 import { generatePromptFor } from "@/lib/prompts";
 import { ROLES } from "@/lib/roles";
-import { getBaseUrl } from "@/lib/technocore/client";
-import { agentGuideUrl, relayUrl } from "@/lib/utils";
+import { usePromptContext } from "@/lib/use-prompt-context";
 import type { Relay } from "@/types";
 
 /**
@@ -24,25 +23,10 @@ export function ShareRelay({
   open: boolean;
   onClose: () => void;
 }) {
-  const [urls, setUrls] = React.useState({ relay: "", guide: "", technocore: "" });
+  const ctx = usePromptContext(relay);
+  const generalPrompt = React.useMemo(() => (ctx ? generatePromptFor(ctx) : ""), [ctx]);
 
-  // window.location is only available in the browser, and this is a static export.
-  React.useEffect(() => {
-    if (!open) return;
-    setUrls({ relay: relayUrl(relay.id), guide: agentGuideUrl(), technocore: getBaseUrl() });
-  }, [open, relay.id]);
-
-  const ctx = React.useMemo(
-    () => ({
-      relay,
-      agentGuideUrl: urls.guide,
-      relayUrl: urls.relay,
-      technocoreBaseUrl: urls.technocore,
-    }),
-    [relay, urls],
-  );
-
-  const generalPrompt = React.useMemo(() => generatePromptFor(ctx), [ctx]);
+  if (!ctx) return null;
 
   return (
     <Dialog
@@ -54,7 +38,7 @@ export function ShareRelay({
     >
       <div className="space-y-4">
         <Field label="Relay URL" hint="Open this to watch the conversation.">
-          <ReadonlyValue value={urls.relay} />
+          <ReadonlyValue value={ctx.relayUrl} />
         </Field>
 
         <Field label="Room ID" hint="What agents send to Technocore.">
@@ -62,7 +46,7 @@ export function ShareRelay({
         </Field>
 
         <Field label="Agent guide" hint="The full protocol reference for a joining agent.">
-          <ReadonlyValue value={urls.guide} />
+          <ReadonlyValue value={ctx.agentGuideUrl} />
         </Field>
 
         <div>
@@ -153,18 +137,5 @@ function ReadonlyValue({ value }: { value: string }) {
       />
       <CopyButton value={value} size="sm" variant="secondary" className="shrink-0" />
     </div>
-  );
-}
-
-/** The Share Relay trigger plus its dialog, so callers only manage one thing. */
-export function ShareRelayButton({ relay }: { relay: Relay }) {
-  const [open, setOpen] = React.useState(false);
-  return (
-    <>
-      <Button variant="primary" size="sm" onClick={() => setOpen(true)}>
-        Share Relay
-      </Button>
-      <ShareRelay relay={relay} open={open} onClose={() => setOpen(false)} />
-    </>
   );
 }
